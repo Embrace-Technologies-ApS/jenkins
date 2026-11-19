@@ -1,0 +1,4 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core">
+  <p>Builds in the last 24 hours: ${it.buildsInLastDay}</p>
+</j:jelly>
