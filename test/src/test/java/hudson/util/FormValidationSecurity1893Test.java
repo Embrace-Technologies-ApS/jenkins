@@ -28,7 +28,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import hudson.model.Messages;
 import org.htmlunit.WebResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,7 +49,7 @@ class FormValidationSecurity1893Test {
         final JenkinsRule.WebClient wc = j.createWebClient();
         final WebResponse response = wc.goTo("descriptorByName/hudson.model.FreeStyleProject/checkCustomWorkspace").getWebResponse();
         assertEquals(200, response.getStatusCode());
-        assertThat(response.getContentAsString(), containsString(Messages.AbstractProject_CustomWorkspaceEmpty()));
+        assertThat(response.getContentAsString(), containsString("Enter a directory for the custom workspace, or turn the option off."));
         assertThat(response.getResponseHeaderValue("Content-Security-Policy"), containsString("default-src 'none';"));
     }
 }
