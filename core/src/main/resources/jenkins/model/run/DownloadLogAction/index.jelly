@@ -1,0 +1,12 @@
+<?jelly escape-by-default='false'?>
+<j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout">
+  <l:layout title="${it.run.fullDisplayName}">
+    <l:main-panel>
+      <h1>Download log for ${it.run.displayName}</h1>
+      <p><a href="file">Console log as text</a></p>
+      <form method="post" action="clear">
+        <button type="submit" class="jenkins-button jenkins-button--destructive">Clear log</button>
+      </form>
+    </l:main-panel>
+  </l:layout>
+</j:jelly>
