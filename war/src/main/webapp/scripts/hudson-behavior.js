@@ -938,7 +938,7 @@ function registerMinMaxValidator(e) {
         if (minInt > valueInt) {
           updateValidationArea(
             this.targetElement,
-            `<div class="error">This value should be larger than ${min}</div>`,
+            `<div class="error">This value should be at least ${min}</div>`,
           );
           set = true;
         } else {
@@ -957,7 +957,7 @@ function registerMinMaxValidator(e) {
         if (maxInt < valueInt) {
           updateValidationArea(
             this.targetElement,
-            `<div class="error">This value should be less than ${max}</div>`,
+            `<div class="error">This value should be at most ${max}</div>`,
           );
           set = true;
         } else {
