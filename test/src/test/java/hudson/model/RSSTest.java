@@ -28,6 +28,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.emptyString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -287,6 +288,47 @@ class RSSTest {
         String buildTitle = FAILED_BUILD_TITLE;
         XmlPage page = getRssFailedPage(wc, pathPrefix);
         checkSingleBuild_Rss(page, pathPrefix, displayName, buildType, buildTitle);
+    }
+
+    @Test
+    void checkRegressions_Rss_Failed_User_IncludesRecentBeyondTenNewestAndExcludesOldBuilds() throws Exception {
+        String userId = "alice";
+        JenkinsRule.WebClient wc = loginAsUser(userId);
+
+        long now = System.currentTimeMillis();
+        long oneDay = 24L * 60 * 60 * 1000;
+        List<FreeStyleBuild> builds = new ArrayList<>();
+        for (int i = 0; i < 12; i++) {
+            FreeStyleProject p = j.createFreeStyleProject("regression" + i);
+            p.getBuildersList().add(new FailureBuilder());
+            builds.add(p.scheduleBuild2(0, new Cause.UserIdCause(userId)).get());
+        }
+        // build 0 is older than seven days and beyond the ten newest: excluded
+        setBuildTime(builds.get(0), now - 30 * oneDay);
+        // build 1 is within seven days but beyond the ten newest: included
+        setBuildTime(builds.get(1), now - 2 * oneDay);
+        // builds 2..11 are recent and are the ten newest
+        for (int i = 2; i < 12; i++) {
+            setBuildTime(builds.get(i), now - (12 - i) * 60_000L);
+        }
+
+        XmlPage page = getRssFailedPage(wc, "user/alice");
+        NodeList items = page.getXmlDocument().getElementsByTagName("item");
+        List<String> titles = new ArrayList<>();
+        for (int i = 0; i < items.getLength(); i++) {
+            titles.add(getSingleNode(items.item(i), "title").getTextContent());
+        }
+
+        assertThat(titles.size(), is(11));
+        assertThat(titles, hasItem(containsString("regression1 ")));
+        assertThat(titles, hasItem(containsString("regression2 ")));
+        assertThat(titles, hasItem(containsString("regression11 ")));
+        assertThat(titles, not(hasItem(containsString("regression0 "))));
+    }
+
+    private static void setBuildTime(Run<?, ?> build, long timeInMillis) throws IOException {
+        build.timestamp = timeInMillis;
+        build.save();
     }
 
     @Test
