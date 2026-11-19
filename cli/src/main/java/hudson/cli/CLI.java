@@ -354,6 +354,7 @@ public class CLI {
                 if (factory.authorization != null) {
                     headers.put("Authorization", List.of(factory.authorization));
                 }
+                headers.put("User-Agent", List.of(userAgent()));
             }
 
             @Override
@@ -532,6 +533,13 @@ public class CLI {
             e.printStackTrace(); // if the version properties is missing, that's OK.
         }
         return props.getProperty("version", "?");
+    }
+
+    /**
+     * The value of the {@code User-Agent} header sent by the CLI, such as {@code Jenkins-CLI/2.500}.
+     */
+    /*package*/ static String userAgent() {
+        return "Jenkins-CLI/" + computeVersion();
     }
 
     /**

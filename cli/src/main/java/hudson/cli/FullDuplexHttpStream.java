@@ -95,7 +95,9 @@ public class FullDuplexHttpStream {
 
     @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Client-side code doesn't involve SSRF.")
     private HttpURLConnection openHttpConnection(URL target) throws IOException {
-        return (HttpURLConnection) target.openConnection();
+        HttpURLConnection con = (HttpURLConnection) target.openConnection();
+        con.setRequestProperty("User-Agent", CLI.userAgent());
+        return con;
     }
 
     // As this transport mode is using POST, it is necessary to resolve possible redirections using GET first.

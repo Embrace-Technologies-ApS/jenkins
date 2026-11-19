@@ -31,12 +31,17 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.security.ApiTokenProperty;
 import jenkins.security.apitoken.ApiTokenPropertyConfiguration;
 import jenkins.util.FullDuplexHttpService;
+import jenkins.util.HttpServletFilter;
 import jenkins.util.Timer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -240,6 +245,61 @@ class CLIActionTest {
             return 0;
         }
 
+    }
+
+    @Test
+    void httpModeSendsVersionedUserAgent() throws Exception {
+        File jar = downloadCliJar();
+        CliUserAgentRecorder.USER_AGENTS.clear();
+        assertEquals(0, new Launcher.LocalLauncher(StreamTaskListener.fromStderr()).launch().cmds(
+            "java", "-jar", jar.getAbsolutePath(),
+                "-http",
+                "-s", j.getURL().toString(),
+                "version").
+            stdout(System.out).stderr(System.err).join());
+        assertEquals("Jenkins-CLI/" + cliVersion(jar), CliUserAgentRecorder.USER_AGENTS.get("/cli"));
+    }
+
+    @Test
+    void webSocketModeSendsVersionedUserAgent() throws Exception {
+        File jar = downloadCliJar();
+        CliUserAgentRecorder.USER_AGENTS.clear();
+        assertEquals(0, new Launcher.LocalLauncher(StreamTaskListener.fromStderr()).launch().cmds(
+            "java", "-jar", jar.getAbsolutePath(),
+                "-webSocket",
+                "-s", j.getURL().toString(),
+                "version").
+            stdout(System.out).stderr(System.err).join());
+        assertEquals("Jenkins-CLI/" + cliVersion(jar), CliUserAgentRecorder.USER_AGENTS.get("/cli/ws"));
+    }
+
+    private File downloadCliJar() throws IOException {
+        File jar = File.createTempFile("jenkins-cli.jar", null, tmp);
+        FileUtils.copyURLToFile(j.jenkins.getJnlpJars("jenkins-cli.jar").getURL(), jar);
+        return jar;
+    }
+
+    /** The version reported by the packaged CLI itself, from {@code -version}. */
+    private static String cliVersion(File jar) throws IOException, InterruptedException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        assertEquals(0, new Launcher.LocalLauncher(StreamTaskListener.fromStderr()).launch().cmds(
+            "java", "-jar", jar.getAbsolutePath(), "-version").
+            stdout(baos).stderr(System.err).join());
+        return baos.toString(Charset.defaultCharset()).trim().replaceFirst("^Version: ", "");
+    }
+
+    @TestExtension
+    public static class CliUserAgentRecorder implements HttpServletFilter {
+        static final Map<String, String> USER_AGENTS = new ConcurrentHashMap<>();
+
+        @Override
+        public boolean handle(HttpServletRequest req, HttpServletResponse rsp) {
+            String path = req.getRequestURI().substring(req.getContextPath().length());
+            if (path.equals("/cli") || path.equals("/cli/ws")) {
+                USER_AGENTS.put(path, req.getHeader("User-Agent"));
+            }
+            return false; // observe only, let the request proceed
+        }
     }
 
     @Issue("JENKINS-64294")
